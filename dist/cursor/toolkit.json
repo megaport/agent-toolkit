@@ -1,0 +1,161 @@
+{
+  "name": "megaport-agent-toolkit",
+  "version": "0.1.0",
+  "description": "Megaport skills, MCP connection and a self-installing CLI for AI coding assistants",
+  "license": "MIT",
+  "homepage": "https://github.com/megaport/agent-toolkit",
+  "repository": "https://github.com/megaport/agent-toolkit",
+  "keywords": [
+    "megaport",
+    "networking",
+    "naas",
+    "terraform",
+    "mcp",
+    "cloud-connectivity"
+  ],
+  "author": {
+    "name": "Megaport",
+    "email": "engineering@megaport.com",
+    "url": "https://github.com/megaport"
+  },
+  "skills": [
+    "megaport",
+    "megaport-docs",
+    "megaport-cli",
+    "megaport-terraform"
+  ],
+  "interface": {
+    "displayName": "Megaport",
+    "developerName": "Megaport",
+    "category": "infrastructure",
+    "shortDescription": "Work with Megaport network services — live account state, docs, Terraform and the CLI.",
+    "longDescription": "Connects your assistant to the hosted Megaport MCP server for live account state, and adds skills for the published documentation, the Terraform provider schema and the Megaport CLI. The CLI is downloaded on demand at a pinned version and verified against the published SHA256SUMS before it runs. A PreToolUse hook escalates any command that would change live infrastructure to you for approval.",
+    "capabilities": [
+      "skills",
+      "mcp",
+      "safety-hooks"
+    ],
+    "websiteURL": "https://www.megaport.com",
+    "defaultPrompt": "List my Megaport services and their status"
+  },
+  "mcpServers": {
+    "megaport": {
+      "type": "http",
+      "url": "https://mcp.megaport.com/mcp"
+    },
+    "terraform": {
+      "optional": true,
+      "type": "stdio",
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "hashicorp/terraform-mcp-server"
+      ]
+    }
+  },
+  "hooks": [
+    {
+      "event": "PreToolUse",
+      "matcher": "^(Bash|Shell)$",
+      "script": "hooks/confirm-mutation.sh",
+      "description": "Requires confirmation before megaport-cli or terraform commands that mutate live infrastructure."
+    }
+  ],
+  "safety": {
+    "readOnlyVerbs": [
+      "status",
+      "version",
+      "help",
+      "completion",
+      "whoami",
+      "topology",
+      "search",
+      "rtt",
+      "check-vlan",
+      "looking-glass",
+      "view",
+      "export",
+      "plan",
+      "diff",
+      "output",
+      "providers",
+      "fmt",
+      "graph"
+    ],
+    "readOnlyVerbPrefixes": [
+      "list",
+      "get",
+      "validate",
+      "show",
+      "describe"
+    ],
+    "valueFlags": [
+      "--base-url",
+      "--env",
+      "--fields",
+      "--max-retries",
+      "--output",
+      "-o",
+      "--profile",
+      "--query",
+      "--template",
+      "--timeout",
+      "--token-url",
+      "--chdir",
+      "-f",
+      "--file",
+      "-var-file"
+    ],
+    "verbWindow": 2,
+    "helpFlags": [
+      "--help",
+      "-h"
+    ],
+    "guardedCommands": [
+      "megaport-cli",
+      "mp-cli.sh",
+      "terraform",
+      "tofu"
+    ],
+    "unsafeFlags": [
+      "--base-url",
+      "--token-url",
+      "--log-http"
+    ],
+    "alwaysEscalate": [
+      "terraform apply",
+      "terraform destroy",
+      "terraform import",
+      "terraform state rm",
+      "terraform state mv",
+      "terraform state push",
+      "terraform taint",
+      "terraform untaint",
+      "tofu apply",
+      "tofu destroy",
+      "tofu import"
+    ]
+  },
+  "pins": {
+    "megaport_cli_repo": "megaport/cli",
+    "megaport_cli_version": "1.0.0-beta.2",
+    "terraform_provider": "megaport/megaport",
+    "docs_base_url": "https://docs.megaport.com",
+    "mcp_url": "https://mcp.megaport.com/mcp"
+  },
+  "allowedHosts": {
+    "hosts": [
+      "docs.megaport.com",
+      "mcp.megaport.com",
+      "api.megaport.com",
+      "api-staging.megaport.com",
+      "registry.terraform.io",
+      "github.com",
+      "api.github.com",
+      "objects.githubusercontent.com",
+      "release-assets.githubusercontent.com"
+    ]
+  }
+}

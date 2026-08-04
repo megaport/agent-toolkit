@@ -1,0 +1,34 @@
+{
+  "name": "megaport-agent-toolkit",
+  "version": "0.1.0",
+  "description": "Megaport skills, MCP connection and a self-installing CLI for AI coding assistants",
+  "author": {
+    "name": "Megaport",
+    "email": "engineering@megaport.com",
+    "url": "https://github.com/megaport"
+  },
+  "homepage": "https://github.com/megaport/agent-toolkit",
+  "repository": "https://github.com/megaport/agent-toolkit",
+  "license": "MIT",
+  "keywords": [
+    "megaport",
+    "networking",
+    "naas",
+    "terraform",
+    "mcp",
+    "cloud-connectivity"
+  ],
+  "skills": [
+    "./skills/megaport",
+    "./skills/megaport-docs",
+    "./skills/megaport-cli",
+    "./skills/megaport-terraform"
+  ],
+  "mcpServers": {
+    "megaport": {
+      "type": "http",
+      "url": "https://mcp.megaport.com/mcp"
+    }
+  },
+  "hooks": "./hooks/hooks.json"
+}

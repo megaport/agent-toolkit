@@ -1,0 +1,159 @@
+{
+  "$comment": "Single source of truth for the Megaport Agent Toolkit. Every artefact under dist/ is generated from this file plus hosts/<host>/host.json. Do not hand-edit dist/.",
+
+  "name": "megaport-agent-toolkit",
+  "version": "0.1.0",
+  "description": "Megaport skills, MCP connection and a self-installing CLI for AI coding assistants",
+  "license": "MIT",
+  "homepage": "https://github.com/megaport/agent-toolkit",
+  "repository": "https://github.com/megaport/agent-toolkit",
+  "$nameComment": "`name` is the plugin identifier, which is NOT the repo slug (megaport/agent-toolkit). Host plugin namespaces are flat and un-namespaced — a plugin called just `agent-toolkit` would collide and would read ambiguously in ~/.cursor/plugins/. Keep it vendor-qualified.",
+  "keywords": [
+    "megaport",
+    "networking",
+    "naas",
+    "terraform",
+    "mcp",
+    "cloud-connectivity"
+  ],
+  "author": {
+    "name": "Megaport",
+    "email": "engineering@megaport.com",
+    "url": "https://github.com/megaport"
+  },
+
+  "skills": ["megaport", "megaport-docs", "megaport-cli", "megaport-terraform"],
+
+  "interface": {
+    "$comment": "Storefront metadata. Only the Codex manifest consumes it today (manifest flavour `codex` in hosts/codex/host.json), but it is product copy, not host configuration, so it lives here and is single-sourced. Codex's publication validator — codex-rs/skills/src/assets/samples/plugin-creator/scripts/validate_plugin.py — requires the whole block: non-empty displayName, shortDescription, longDescription, developerName and category, a `capabilities` array of non-empty strings, and a `defaultPrompt` string or list (max 3 entries, 128 chars each). websiteURL is optional but must be https.",
+
+    "displayName": "Megaport",
+    "developerName": "Megaport",
+    "category": "infrastructure",
+    "shortDescription": "Work with Megaport network services — live account state, docs, Terraform and the CLI.",
+    "longDescription": "Connects your assistant to the hosted Megaport MCP server for live account state, and adds skills for the published documentation, the Terraform provider schema and the Megaport CLI. The CLI is downloaded on demand at a pinned version and verified against the published SHA256SUMS before it runs. A PreToolUse hook escalates any command that would change live infrastructure to you for approval.",
+    "capabilities": ["skills", "mcp", "safety-hooks"],
+    "websiteURL": "https://www.megaport.com",
+    "defaultPrompt": "List my Megaport services and their status"
+  },
+
+  "mcpServers": {
+    "megaport": {
+      "type": "http",
+      "url": "https://mcp.megaport.com/mcp"
+    },
+    "terraform": {
+      "$comment": "Opt-in. Requires Docker. Enabled by `build.sh --with-terraform-mcp` or by the user uncommenting it after install; see skills/megaport-terraform.",
+      "optional": true,
+      "type": "stdio",
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "hashicorp/terraform-mcp-server"]
+    }
+  },
+
+  "hooks": [
+    {
+      "event": "PreToolUse",
+      "matcher": "^(Bash|Shell)$",
+      "script": "hooks/confirm-mutation.sh",
+      "description": "Requires confirmation before megaport-cli or terraform commands that mutate live infrastructure."
+    }
+  ],
+
+  "safety": {
+    "$comment": "Fail-closed by design: read verbs are allowlisted and everything else escalates to a human prompt. A denylist of mutating verbs would silently miss any verb a future release adds; this will not. Verified against megaport-cli 1.0.0-beta.2, whose grammar is `megaport-cli [global flags] <group> <verb> [args]` — hence verbWindow 2.",
+
+    "readOnlyVerbs": [
+      "status",
+      "version",
+      "help",
+      "completion",
+      "whoami",
+      "topology",
+      "search",
+      "rtt",
+      "check-vlan",
+      "looking-glass",
+      "view",
+      "export",
+      "plan",
+      "diff",
+      "output",
+      "providers",
+      "fmt",
+      "graph"
+    ],
+    "$readOnlyVerbsComment": "Exact matches. Note that lock/unlock/restore/import/apply are deliberately absent — they mutate.",
+
+    "readOnlyVerbPrefixes": ["list", "get", "validate", "show", "describe"],
+    "$readOnlyVerbPrefixesComment": "Covers the long tail: list-tags, list-images, list-prefix-filter-lists, get-prefix-filter-list, get-default, validate-lag. A future list-*/get-* verb is read-only by construction.",
+
+    "valueFlags": [
+      "--base-url",
+      "--env",
+      "--fields",
+      "--max-retries",
+      "--output",
+      "-o",
+      "--profile",
+      "--query",
+      "--template",
+      "--timeout",
+      "--token-url",
+      "--chdir",
+      "-f",
+      "--file",
+      "-var-file"
+    ],
+    "$valueFlagsComment": "Flags whose following token is a value, not a verb. Without this, `megaport-cli --output json ports list` would read 'json' as the verb and escalate. An unlisted value-flag is a false-allow risk, not merely a spurious prompt: its value is consumed as a candidate verb, so if that value happens to match a readOnlyVerb it launders the real, mutating verb out of the window — `megaport-cli --query list ports delete abc` reads 'list' and allows the delete. Keep this list exhaustive against the pinned CLI's global flags (`megaport-cli --help`) every time .pins.megaport_cli_version is bumped. First two lines are the complete megaport-cli 1.0.0-beta.2 value-taking globals; third line is terraform/tofu.",
+
+    "verbWindow": 2,
+
+    "helpFlags": ["--help", "-h"],
+    "$helpFlagsComment": "Help output cannot mutate anything, and agents explore with --help constantly.",
+
+    "guardedCommands": ["megaport-cli", "mp-cli.sh", "terraform", "tofu"],
+    "$guardedCommandsComment": "Matched by basename token and by substring. mp-cli.sh is the self-installing wrapper every skill actually invokes (`{{LIB}}/mp-cli.sh <args>`) and it execs the real binary, so it must be guarded exactly like megaport-cli — otherwise the documented call path bypasses the hook entirely.",
+
+    "unsafeFlags": ["--base-url", "--token-url", "--log-http"],
+    "$unsafeFlagsComment": "megaport-cli globals that reroute API traffic and OAuth token exchange to an arbitrary — possibly plain-HTTP — host, or write raw auth headers to stderr; --log-http's own help text warns the output 'may include sensitive data such as auth tokens'. confirm-mutation.sh escalates any guarded command carrying one of these even when the verb is read-only, and lib/mp-cli.sh refuses to forward them unless MEGAPORT_TOOLKIT_ALLOW_UNSAFE_FLAGS=1. --base-url and --token-url are deliberately in valueFlags too: they still take a value, and verb parsing must skip it.",
+
+    "alwaysEscalate": [
+      "terraform apply",
+      "terraform destroy",
+      "terraform import",
+      "terraform state rm",
+      "terraform state mv",
+      "terraform state push",
+      "terraform taint",
+      "terraform untaint",
+      "tofu apply",
+      "tofu destroy",
+      "tofu import"
+    ]
+  },
+
+  "pins": {
+    "$comment": "megaport-cli has NO non-prerelease GitHub release; /releases/latest returns 404. The version below is pinned deliberately and bumped by a maintainer. Never resolve 'latest' at runtime.",
+    "megaport_cli_repo": "megaport/cli",
+    "megaport_cli_version": "1.0.0-beta.2",
+    "terraform_provider": "megaport/megaport",
+    "docs_base_url": "https://docs.megaport.com",
+    "mcp_url": "https://mcp.megaport.com/mcp"
+  },
+
+  "allowedHosts": {
+    "$comment": "Every outbound host the toolkit is permitted to contact. tests/run.sh fails the build if a lib script references a host that is not on this list. This is what makes the zero-telemetry claim testable.",
+    "hosts": [
+      "docs.megaport.com",
+      "mcp.megaport.com",
+      "api.megaport.com",
+      "api-staging.megaport.com",
+      "registry.terraform.io",
+      "github.com",
+      "api.github.com",
+      "objects.githubusercontent.com",
+      "release-assets.githubusercontent.com"
+    ]
+  }
+}

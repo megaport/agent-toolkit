@@ -1,0 +1,38 @@
+{
+  "id": "cursor",
+  "displayName": "Cursor",
+  "vendor": "Anysphere",
+  "status": "ga",
+
+  "pluginDir": ".cursor-plugin",
+
+  "pluginRootExpr": "${CURSOR_PLUGIN_ROOT:-$HOME/.cursor/plugins/local/megaport-agent-toolkit}",
+  "$pluginRootComment": "Cursor does not document a plugin-root variable. The fallback MUST stay byte-identical to the symlink target in `.install` below (~/.cursor/plugins/local/<name>) — that is the only path a local install actually creates. The two diverging is not a cosmetic bug: the generated hooks.json sets failClosed:true, so if CURSOR_PLUGIN_ROOT is unset and this expression resolves to a path with no confirm-mutation.sh in it, Cursor fails the hook closed and blocks EVERY shell command, not just the guarded ones. Every script in core/lib is also self-locating, so this expression is a convenience rather than the correctness mechanism — but the hook command line is resolved by Cursor, not by the script, so it gets no such safety net.",
+
+  "skillsDir": "skills",
+  "frontmatterKeys": ["name", "description", "paths", "disable-model-invocation", "metadata"],
+
+  "mcp": {
+    "mode": "file",
+    "file": "mcp.json",
+    "$comment": "Cursor discovers mcp.json at the plugin root automatically — no manifest key. Written in the standard {\"mcpServers\": {...}} shape, same as every other mcp.json a user has ever pasted."
+  },
+
+  "hooks": {
+    "file": "hooks.json",
+    "dialect": "cursor",
+    "format": "cursor",
+    "event": "beforeShellExecution",
+    "$comment": "Different event name, different payload, different denial protocol (stdout {\"permission\":\"deny\"} + exit 2). The only host needing its own dialect."
+  },
+
+  "marketplace": {
+    "file": ".cursor-plugin/marketplace.json",
+    "$comment": "Multi-plugin repos need .cursor-plugin/marketplace.json. Listing on cursor.com/marketplace is human-reviewed and requires the repo to be public — this host is NOT on our release cadence."
+  },
+
+  "install": [
+    "Submit at https://cursor.com/marketplace/publish (manual review), or for local testing:",
+    "ln -s \"$PWD/dist/cursor\" ~/.cursor/plugins/local/megaport-agent-toolkit"
+  ]
+}

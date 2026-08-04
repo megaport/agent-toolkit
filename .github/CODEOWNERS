@@ -1,0 +1,15 @@
+# Default owner for the toolkit.
+*                       @megaport/developer-experience
+
+# The shared core is what every host inherits — a change here reaches all of
+# them at once.
+/core/                  @megaport/developer-experience
+
+# The safety gate. Any change to the classifier or its policy needs a second
+# pair of eyes; a false allow here is a customer-visible incident.
+/core/hooks/            @megaport/developer-experience @megaport/security
+/core/toolkit.json      @megaport/developer-experience @megaport/security
+
+# Generated. Should only ever change as a side effect of a core/ or hosts/
+# change, via ./build.sh.
+/dist/                  @megaport/developer-experience

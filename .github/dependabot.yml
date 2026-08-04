@@ -1,0 +1,21 @@
+version: 2
+
+# The only third-party code in this repo runs in CI. actions/checkout sat three
+# majors behind before anyone noticed; this is the mechanism that stops that
+# recurring. Actions are pinned to full commit SHAs — dependabot bumps both the
+# SHA and its trailing `# vX.Y.Z` comment, so pinning costs no manual upkeep.
+#
+# Nothing here touches core/ — runtime pins live in core/toolkit.json -> .pins
+# and are bumped deliberately, by hand.
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns:
+          - "*"

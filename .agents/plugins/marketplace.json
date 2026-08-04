@@ -1,0 +1,17 @@
+{
+  "name": "megaport",
+  "interface": {
+    "displayName": "Megaport"
+  },
+  "plugins": [
+    {
+      "name": "megaport-agent-toolkit",
+      "description": "Megaport skills, MCP connection and a self-installing CLI for AI coding assistants",
+      "category": "infrastructure",
+      "source": {
+        "source": "local",
+        "path": "./dist/codex"
+      }
+    }
+  ]
+}

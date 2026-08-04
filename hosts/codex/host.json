@@ -1,0 +1,44 @@
+{
+  "id": "codex",
+  "displayName": "Codex CLI",
+  "vendor": "OpenAI",
+  "status": "ga",
+
+  "pluginDir": ".codex-plugin",
+  "pluginRootExpr": "${PLUGIN_ROOT}",
+
+  "skillsDir": "skills",
+  "frontmatterKeys": ["name", "description"],
+
+  "manifest": {
+    "flavour": "codex",
+    "$comment": "Codex's runtime loader is lenient (skills may be a path or an array, interface optional, hooks may be a path) but its publication validator is not — codex-rs/skills/src/assets/samples/plugin-creator/scripts/validate_plugin.py rejects the default manifest shape three ways: `skills` must be a single string normalising to the skills directory, `interface` is required in full, and the allowed key set is exactly id/name/version/description/skills/apps/mcpServers/interface/author/homepage/repository/license/keywords — `hooks` is not on it. Build against the validator, not the loader: a bundle that only satisfies the loader installs locally and fails publication."
+  },
+
+  "skillPreamble": "> **Codex path note.** Toolkit commands are written against `{{PLUGIN_ROOT}}`, which Codex does not set in your shell — it injects that variable into hook subprocesses only. Derive it from this skill's own `<path>`: the plugin root is the directory two levels above this `SKILL.md`. Export it once per session, before the first toolkit command you run, e.g. `export PLUGIN_ROOT=\"$(cd \"$(dirname <path to this SKILL.md>)/../..\" && pwd)\"`.",
+  "$skillPreambleComment": "Verified against openai/codex codex-rs/hooks/src/engine/discovery.rs: PLUGIN_ROOT and CLAUDE_PLUGIN_ROOT are injected into hook subprocesses and nowhere else, so hooks/hooks.json renders correctly but a skill body telling the model to run `${PLUGIN_ROOT}/lib/mp-cli.sh` expands to `/lib/mp-cli.sh` and every helper fails. Skills are presented to the model as <name>/<path>/<contents>, so the path is always available to derive from. Self-location inside core/lib cannot rescue this — it only starts helping once a script has actually been invoked.",
+
+  "mcp": {
+    "mode": "file",
+    "file": ".mcp.json",
+    "manifestKey": "mcpServers",
+    "$comment": "Codex references an external .mcp.json from plugin.json via `mcpServers`. The file must be wrapped as {\"mcpServers\": {...}}: the loader also accepts a bare server map, but the publication validator rejects the unknown top-level keys that produces."
+  },
+
+  "hooks": {
+    "file": "hooks/hooks.json",
+    "dialect": "pretooluse",
+    "$comment": "hooks/hooks.json is Codex's DEFAULT plugin hooks path (DEFAULT_HOOKS_CONFIG_FILE, codex-rs/core-plugins/src/loader.rs), so no manifestKey: the file is discovered where build.sh already writes it, and naming it would fail the publication validator's allowed key set. Wire format is identical to Claude Code's — verified against codex-rs/hooks/schema/generated/pre-tool-use.command.{input,output}.schema.json and codex-rs/config/src/hooks_tests.rs — including permissionDecision, whose enum is allow|deny|ask."
+  },
+
+  "marketplace": {
+    "file": ".agents/plugins/marketplace.json",
+    "flavour": "codex",
+    "$comment": "Codex reads marketplaces from .agents/plugins/marketplace.json with a structured source object."
+  },
+
+  "install": [
+    "codex plugin marketplace add megaport/agent-toolkit",
+    "codex plugin add megaport-agent-toolkit"
+  ]
+}

@@ -1,0 +1,92 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# A newer push to the same branch supersedes the one in flight. main is exempt
+# so every commit there keeps a result of its own.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install tooling
+        run: sudo apt-get update && sudo apt-get install -y shellcheck jq
+
+      # Offline checks: lint, schema, template tokens, the outbound-host
+      # allowlist, the safety hook in both dialects, and dist/ drift.
+      - name: Test
+        run: ./tests/run.sh
+
+      # dist/ is committed and is what the marketplaces install. If it does not
+      # match what build.sh produces from core/, the published artefact and the
+      # source have diverged.
+      #
+      # `git status --porcelain -uall`, not `git diff` — a new host or skill adds
+      # *untracked* files under dist/ and the marketplace dirs, and git diff is
+      # blind to those. The "Adding a host" flow in AGENTS.md hits exactly that
+      # case, so the weaker check would pass on the one change most likely to
+      # ship a stale artefact.
+      - name: dist/ is in sync with core/
+        run: |
+          ./build.sh
+          changed="$(git status --porcelain -uall -- dist .claude-plugin .agents .cursor-plugin)"
+          if [ -n "$changed" ]; then
+            echo "::error::dist/ is stale — run ./build.sh and commit the result"
+            echo "$changed"
+            git diff -- dist .claude-plugin .agents .cursor-plugin
+            exit 1
+          fi
+
+  network:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Live retrieval against docs.megaport.com, the Terraform Registry and the
+    # megaport-cli releases. Kept separate so an upstream outage does not block
+    # a pull request.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: sudo apt-get update && sudo apt-get install -y jq unzip
+      - run: ./tests/run.sh --network
+
+  cross-platform:
+    # macOS ships bash 3.2 (the runner image confirms 3.2.57 and installs no
+    # Homebrew bash, so `#!/usr/bin/env bash` really does resolve to it). Every
+    # runtime script targets it deliberately; this is where that claim gets
+    # checked rather than assumed.
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: brew install jq shellcheck
+      # Assert, don't just print. If a future image puts a Homebrew bash ahead
+      # of /bin/bash on PATH, this job would quietly start testing bash 5 and
+      # the 3.2 guarantee would lapse without anyone noticing.
+      - name: Runner bash really is 3.2
+        run: |
+          # `bash` on PATH is what `#!/usr/bin/env bash` in core/lib resolves to.
+          v="$(bash -c 'echo "$BASH_VERSION"')"
+          echo "bash on PATH: $(command -v bash) -> $v"
+          case "$v" in
+            3.2*) ;;
+            *) echo "::error::expected bash 3.2 on the macOS runner, got $v"; exit 1 ;;
+          esac
+      - run: ./tests/run.sh

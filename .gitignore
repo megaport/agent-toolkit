@@ -1,0 +1,13 @@
+# Runtime caches — never committed
+.cache/
+*.tmp
+
+# Local host overrides for development
+hosts/*/local.json
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# NOTE: dist/ IS committed. It is the artefact marketplaces consume.
+# CI enforces that it matches `./build.sh` output.

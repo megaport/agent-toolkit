@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [
+      {
+        "type": "command",
+        "command": "${CURSOR_PLUGIN_ROOT:-$HOME/.cursor/plugins/local/megaport-agent-toolkit}/hooks/confirm-mutation.sh --dialect cursor",
+        "timeout": 15,
+        "failClosed": true
+      }
+    ]
+  }
+}

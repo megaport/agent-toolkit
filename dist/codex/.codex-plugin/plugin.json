@@ -1,0 +1,37 @@
+{
+  "name": "megaport-agent-toolkit",
+  "version": "0.1.0",
+  "description": "Megaport skills, MCP connection and a self-installing CLI for AI coding assistants",
+  "author": {
+    "name": "Megaport",
+    "email": "engineering@megaport.com",
+    "url": "https://github.com/megaport"
+  },
+  "homepage": "https://github.com/megaport/agent-toolkit",
+  "repository": "https://github.com/megaport/agent-toolkit",
+  "license": "MIT",
+  "keywords": [
+    "megaport",
+    "networking",
+    "naas",
+    "terraform",
+    "mcp",
+    "cloud-connectivity"
+  ],
+  "skills": "./skills",
+  "interface": {
+    "displayName": "Megaport",
+    "developerName": "Megaport",
+    "category": "infrastructure",
+    "shortDescription": "Work with Megaport network services — live account state, docs, Terraform and the CLI.",
+    "longDescription": "Connects your assistant to the hosted Megaport MCP server for live account state, and adds skills for the published documentation, the Terraform provider schema and the Megaport CLI. The CLI is downloaded on demand at a pinned version and verified against the published SHA256SUMS before it runs. A PreToolUse hook escalates any command that would change live infrastructure to you for approval.",
+    "capabilities": [
+      "skills",
+      "mcp",
+      "safety-hooks"
+    ],
+    "websiteURL": "https://www.megaport.com",
+    "defaultPrompt": "List my Megaport services and their status"
+  },
+  "mcpServers": "./.mcp.json"
+}

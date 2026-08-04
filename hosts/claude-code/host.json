@@ -1,0 +1,34 @@
+{
+  "id": "claude-code",
+  "displayName": "Claude Code",
+  "vendor": "Anthropic",
+  "status": "ga",
+
+  "pluginDir": ".claude-plugin",
+  "pluginRootExpr": "${CLAUDE_PLUGIN_ROOT}",
+
+  "skillsDir": "skills",
+  "frontmatterKeys": ["name", "description", "allowed-tools"],
+
+  "mcp": {
+    "mode": "inline",
+    "$comment": "Claude Code declares MCP servers as an `mcpServers` object inside plugin.json."
+  },
+
+  "hooks": {
+    "file": "hooks/hooks.json",
+    "dialect": "pretooluse",
+    "$comment": "Claude Code and Codex are wire-identical for PreToolUse. Same script, same config shape."
+  },
+
+  "marketplace": {
+    "file": ".claude-plugin/marketplace.json",
+    "sourceKey": "source",
+    "$comment": "Lives at the repo root so `/plugin marketplace add megaport/agent-toolkit` resolves."
+  },
+
+  "install": [
+    "/plugin marketplace add megaport/agent-toolkit",
+    "/plugin install megaport-agent-toolkit@megaport"
+  ]
+}

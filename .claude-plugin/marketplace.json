@@ -1,0 +1,22 @@
+{
+  "name": "megaport",
+  "description": "Official Megaport plugins for AI coding assistants",
+  "owner": {
+    "name": "Megaport",
+    "email": "engineering@megaport.com",
+    "url": "https://github.com/megaport"
+  },
+  "plugins": [
+    {
+      "name": "megaport-agent-toolkit",
+      "source": "./dist/claude-code",
+      "description": "Megaport skills, MCP connection and a self-installing CLI for AI coding assistants",
+      "version": "0.1.0",
+      "author": {
+        "name": "Megaport",
+        "email": "engineering@megaport.com",
+        "url": "https://github.com/megaport"
+      }
+    }
+  ]
+}
