@@ -18,7 +18,8 @@
   "hooks": {
     "file": "hooks/hooks.json",
     "dialect": "pretooluse",
-    "$comment": "Claude Code and Codex are wire-identical for PreToolUse. Same script, same config shape."
+    "$comment": "Claude Code and Codex are wire-identical for PreToolUse. Same script, same config shape.",
+    "$manifestKeyComment": "No manifestKey, deliberately. hooks/hooks.json is Claude Code's standard auto-loaded path, and since 2.1.x naming it in the manifest as well is an error — the loader reports 'Duplicate hooks file detected' and fails the entire plugin, not just the hook. The manifest key is documented as being for ADDITIONAL hook files only. Verified on 2.1.223: with the key present `claude plugin list` shows 'failed to load'; with it absent the plugin loads and `claude plugin details` still reports Hooks (1) PreToolUse."
   },
 
   "marketplace": {

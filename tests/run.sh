@@ -32,7 +32,7 @@ group "lint"
 
 # One list, two loops. They were maintained separately and drifted: this file
 # was parse-checked but never linted, so anything added to it went unshellchecked.
-SCRIPTS=("$ROOT"/build.sh "$ROOT"/tests/run.sh "$CORE"/lib/*.sh "$CORE"/hooks/*.sh)
+SCRIPTS=("$ROOT"/build.sh "$ROOT"/tests/run.sh "$ROOT"/tests/upstream.sh "$CORE"/lib/*.sh "$CORE"/hooks/*.sh)
 
 for f in "${SCRIPTS[@]}"; do
   if bash -n "$f" 2>/dev/null; then ok "parses: ${f#"$ROOT"/}"; else bad "parses: ${f#"$ROOT"/}" "$(bash -n "$f" 2>&1)"; fi
@@ -152,6 +152,56 @@ else
           "missing a '# vX.Y.Z' comment:$unlabelled"
     fi
   fi
+fi
+
+# ---------------------------------------------------------------- upstream pins
+
+group "upstream pins"
+
+# tests/upstream.sh fetches each host's publication validator and runs it. Those
+# are third-party files executed on a runner, so they get the same treatment as
+# a GitHub Action: a full commit SHA, a human-readable label, and — because
+# unlike an action they are fetched rather than resolved by GitHub — a recorded
+# sha256. This group checks the pins offline; upstream.sh checks the bytes.
+PINSF="$ROOT/tests/upstream.pins.json"
+if [ ! -f "$PINSF" ]; then
+  bad "upstream.pins.json exists"
+elif ! jq empty "$PINSF" 2>/dev/null; then
+  bad "upstream.pins.json is valid JSON"
+else
+  ok "upstream.pins.json is valid JSON"
+  pin_violation=0
+  for k in $(jq -r '.files | keys[]' "$PINSF"); do
+    ref="$(jq -r ".files[\"$k\"].ref" "$PINSF")"
+    printf '%s' "$ref" | grep -qE '^[0-9a-f]{40}$' \
+      || { bad "pin is a 40-hex SHA: $k" "got '$ref' — a tag or branch can be repointed upstream"; pin_violation=1; }
+    printf '%s' "$(jq -r ".files[\"$k\"].sha256" "$PINSF")" | grep -qE '^[0-9a-f]{64}$' \
+      || { bad "pin records a sha256: $k"; pin_violation=1; }
+    # The counterpart of the trailing `# vX.Y.Z` on an action pin: 40 opaque
+    # characters tell a reviewer nothing about what is being fetched.
+    [ -n "$(jq -r ".files[\"$k\"].refName // empty" "$PINSF")" ] \
+      || { bad "pin records a human label: $k" "add .refName"; pin_violation=1; }
+    case "$(jq -r ".files[\"$k\"].track // empty" "$PINSF")" in
+      main|release) ;;
+      *) bad "pin declares a track: $k" "need \"main\" or \"release\" so --latest can resolve it"; pin_violation=1 ;;
+    esac
+  done
+  for k in $(jq -r '.clis | keys[]' "$PINSF"); do
+    printf '%s' "$(jq -r ".clis[\"$k\"].version" "$PINSF")" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+' \
+      || { bad "CLI pin is an exact version: $k"; pin_violation=1; }
+  done
+  [ "$pin_violation" -eq 0 ] && ok "every upstream validator is pinned, hashed and labelled"
+
+  # Every host must be covered by at least one upstream validator, or a new host
+  # silently ships with nothing checking its manifest shape.
+  for hd in "$ROOT"/hosts/*/; do
+    hid="$(jq -r '.id' "$hd/host.json")"
+    if [ "$(jq -r --arg h "$hid" '[(.files,.clis)[] | select(.host == $h)] | length' "$PINSF")" -gt 0 ]; then
+      ok "upstream validator covers host: $hid"
+    else
+      bad "upstream validator covers host: $hid" "add an entry to tests/upstream.pins.json"
+    fi
+  done
 fi
 
 # ---------------------------------------------------------------- hooks

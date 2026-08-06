@@ -12,6 +12,11 @@
   "skillsDir": "skills",
   "frontmatterKeys": ["name", "description", "paths", "disable-model-invocation", "metadata"],
 
+  "manifest": {
+    "authorKeys": ["name", "email"],
+    "$comment": "Cursor's published plugin schema (cursor/plugins schemas/plugin.schema.json) is additionalProperties:false and its author object permits name and email only — `url` is rejected. Nothing is lost: `homepage` and `repository` are both permitted top-level keys and already carry it. All 13 plugins in cursor/plugins use exactly {name, email}. Cursor's runtime loader ignores the extra key, which is why a local install looks fine; the publication schema its own CI enforces does not. Same lenient-loader/strict-validator split as Codex, different surface."
+  },
+
   "mcp": {
     "mode": "file",
     "file": "mcp.json",
@@ -28,7 +33,9 @@
 
   "marketplace": {
     "file": ".cursor-plugin/marketplace.json",
-    "$comment": "Multi-plugin repos need .cursor-plugin/marketplace.json. Listing on cursor.com/marketplace is human-reviewed and requires the repo to be public — this host is NOT on our release cadence."
+    "flavour": "cursor",
+    "$comment": "Multi-plugin repos need .cursor-plugin/marketplace.json. Listing on cursor.com/marketplace is human-reviewed and requires the repo to be public — this host is NOT on our release cadence.",
+    "$flavourComment": "cursor/plugins schemas/marketplace.schema.json is additionalProperties:false at every level and differs from the default shape three ways: the marketplace description lives under `metadata`, not at the top level; `owner` permits name and email only; and a plugin entry permits name/source/description/minClientVersions only — no `version`, no `author`. The plugin's own manifest is where its version and author belong, and duplicating them in the index is what the schema is refusing. cursor/plugins' own .cursor-plugin/marketplace.json is exactly this shape."
   },
 
   "install": [

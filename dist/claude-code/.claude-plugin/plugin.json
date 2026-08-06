@@ -29,6 +29,5 @@
       "type": "http",
       "url": "https://mcp.megaport.com/mcp"
     }
-  },
-  "hooks": "./hooks/hooks.json"
+  }
 }

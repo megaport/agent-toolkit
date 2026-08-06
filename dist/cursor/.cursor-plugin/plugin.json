@@ -4,8 +4,7 @@
   "description": "Megaport skills, MCP connection and a self-installing CLI for AI coding assistants",
   "author": {
     "name": "Megaport",
-    "email": "engineering@megaport.com",
-    "url": "https://github.com/megaport"
+    "email": "engineering@megaport.com"
   },
   "homepage": "https://github.com/megaport/agent-toolkit",
   "repository": "https://github.com/megaport/agent-toolkit",

@@ -1,0 +1,43 @@
+{
+  "$comment": "Upstream publication validators, consumed by tests/upstream.sh. Every file artefact is pinned to a full 40-hex commit SHA and verified against the recorded sha256 before it is parsed or executed, and every CLI validator is pinned to an exact version. Same rule as the `uses:` pins in .github/workflows and the CLI download in core/lib/mp-cli.sh: a mutable ref can be repointed by whoever controls the upstream repo, and this pipeline runs their code on a runner. `refName` is the human label for the pin, the counterpart of the trailing `# vX.Y.Z` on an action pin — a bare 40-hex SHA tells a reviewer nothing.",
+  "$bump": "./tests/upstream.sh --latest prints the current upstream SHAs and hashes as a ready-to-paste block. Re-run ./tests/upstream.sh afterwards: a bump that changes a validator's verdict is the signal this file exists to produce.",
+  "files": {
+    "cursor-plugin-schema": {
+      "host": "cursor",
+      "repo": "cursor/plugins",
+      "ref": "8185ad9fbb903efc7d1cf152a9be9777e516cfbc",
+      "refName": "main @ 2026-08-05",
+      "path": "schemas/plugin.schema.json",
+      "sha256": "a393b758901803fcf5cfe0d77bda8a83e987d32c3377dfce2d9edf445af884ed",
+      "$comment": "cursor/plugins publishes no tags, so the pin is a main-branch commit. Enforced upstream by .github/workflows/validate-plugins.yml on every pull request to that repo.",
+      "track": "main"
+    },
+    "cursor-marketplace-schema": {
+      "host": "cursor",
+      "repo": "cursor/plugins",
+      "ref": "8185ad9fbb903efc7d1cf152a9be9777e516cfbc",
+      "refName": "main @ 2026-08-05",
+      "path": "schemas/marketplace.schema.json",
+      "sha256": "1aae96a24c2796419933bc8bfe3a1255394e7199c35740b36325e0ce6dbc253d",
+      "track": "main"
+    },
+    "codex-plugin-validator": {
+      "host": "codex",
+      "repo": "openai/codex",
+      "ref": "79b4f03d35962b005b007a015113b38930711665",
+      "refName": "rust-v0.146.1",
+      "path": "codex-rs/skills/src/assets/samples/plugin-creator/scripts/validate_plugin.py",
+      "sha256": "ebda00d55d7518b127f675f062fb5c6e7a1ffdc0a99df1a55ac594400d7d3228",
+      "$comment": "The publication validator behind the `manifest.flavour: codex` shape documented in hosts/codex/host.json. This one is executed, not just parsed — hence the hash check is load-bearing, not decorative.",
+      "track": "release"
+    }
+  },
+  "clis": {
+    "claude-code": {
+      "host": "claude-code",
+      "package": "@anthropic-ai/claude-code",
+      "version": "2.1.223",
+      "$comment": "Claude Code ships no standalone manifest schema; `claude plugin validate --strict` IS the upstream validator, so the pin is an npm version rather than a commit SHA. It checks manifest fields, skill frontmatter and component paths. It does NOT check that the plugin loads — a manifest can pass --strict and still fail at install time, which is a Tier 2 concern (install into an isolated CLAUDE_CONFIG_DIR and read `claude plugin list --json` .errors), deliberately not covered here."
+    }
+  }
+}

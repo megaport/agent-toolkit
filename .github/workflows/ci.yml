@@ -51,6 +51,43 @@ jobs:
             exit 1
           fi
 
+  # Validates the generated manifests against each HOST's own publication
+  # validator — Cursor's JSON schemas, Codex's validate_plugin.py, and Claude
+  # Code's `plugin validate --strict` — rather than against rules this repo
+  # wrote down about them. Each file artefact is fetched at a pinned commit SHA
+  # and checked against a recorded sha256 before it is parsed or executed; see
+  # tests/upstream.pins.json.
+  #
+  # NOT continue-on-error, unlike `network` below. An upstream outage there is
+  # somebody else's bad day; a manifest that violates a host's publication
+  # schema is a defect that reaches a marketplace. A host's runtime loader is
+  # more lenient than its validator in every case here, so a local install
+  # looking fine proves nothing about whether the bundle can be published.
+  upstream-schemas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      # Pinned for the same reason the actions are: these run on the runner.
+      - name: Install validator dependencies
+        run: pip install jsonschema==4.26.0 pyyaml==6.0.3
+
+      # Claude Code publishes no standalone schema — its CLI is the validator,
+      # so the pin is an npm version. Read from the pins file so there is one
+      # place to bump, and so tests/upstream.sh can assert the runner really got
+      # the version it claims to be testing against.
+      - name: Install pinned Claude Code CLI
+        run: npm install -g "@anthropic-ai/claude-code@$(jq -r '.clis["claude-code"].version' tests/upstream.pins.json)"
+
+      - run: ./tests/upstream.sh
+
   network:
     runs-on: ubuntu-latest
     timeout-minutes: 15

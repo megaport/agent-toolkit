@@ -277,6 +277,19 @@ EOF
       ;;
   esac
 
+  # Some hosts publish a manifest schema that is additionalProperties:false with
+  # a narrower author object than core/toolkit.json carries — Cursor's permits
+  # name and email, and rejects the `url` that homepage/repository already hold.
+  # Which keys survive is a per-host schema fact, so it is declared in host.json
+  # and core/ stays neutral. Hosts that omit the key keep the full author block.
+  local author_keys
+  author_keys="$(hj '(.manifest.authorKeys // []) | join(" ")')"
+  if [ -n "$author_keys" ]; then
+    manifest="$(printf '%s' "$manifest" | jq --arg k "$author_keys" '
+      ($k | split(" ")) as $keys
+      | .author |= with_entries(select(.key as $x | $keys | index($x)))')"
+  fi
+
   if [ "$mcp_mode" = "inline" ]; then
     manifest="$(printf '%s' "$manifest" | jq --argjson m "$active" '.mcpServers = $m')"
   else
@@ -285,15 +298,30 @@ EOF
   fi
 
   # The hooks file is always written (step 5); naming it in the manifest is
-  # optional and per-host. The codex flavour deliberately does not name it: its
-  # validator allows a fixed key set that has no `hooks` in it, and its loader
-  # defaults to hooks/hooks.json (DEFAULT_HOOKS_CONFIG_FILE,
-  # codex-rs/core-plugins/src/loader.rs) — which is where step 5 already put it.
+  # opt-in, via `.hooks.manifestKey`. No host sets it, because step 5 writes each
+  # host's hooks file at that host's own default discovery path and naming a file
+  # the host already found is at best redundant:
+  #
+  #   claude-code  hooks/hooks.json  auto-loaded. Naming it is now an ERROR —
+  #                Claude Code 2.1.223 rejects the manifest reference as a
+  #                duplicate of the file it already loaded ("Hook load failed:
+  #                Duplicate hooks file detected"), and a hook load failure
+  #                fails the WHOLE plugin: `claude plugin list` reports it as
+  #                `failed to load` and no skill is registered. `claude plugin
+  #                validate --strict` passes it, so this is only visible from an
+  #                actual install.
+  #   codex        hooks/hooks.json  DEFAULT_HOOKS_CONFIG_FILE,
+  #                codex-rs/core-plugins/src/loader.rs. Naming it fails the
+  #                publication validator, whose allowed key set has no `hooks`.
+  #   cursor       hooks.json        discovered at the plugin root.
+  #
+  # So the default is to write the file and say nothing about it. Do not add a
+  # fallback that names it "when the host doesn't object" — that is what used to
+  # be here, and claude-code silently graduated from the group that doesn't
+  # object to the group that hard-fails.
   local hkey; hkey="$(hj '.hooks.manifestKey // empty')"
   if [ -n "$hkey" ]; then
     manifest="$(printf '%s' "$manifest" | jq --arg f "./$hooks_file" --arg k "$hkey" '.[$k] = $f')"
-  elif [ "$dialect" != "cursor" ] && [ "$manifest_flavour" != "codex" ]; then
-    manifest="$(printf '%s' "$manifest" | jq --arg f "./$hooks_file" '.hooks = $f')"
   fi
 
   printf '%s\n' "$manifest" > "$dest/$plugin_dir/plugin.json"
@@ -334,6 +362,24 @@ build_marketplace() {
           description: $t[0].description,
           category: "infrastructure",
           source: { source: "local", path: $path }
+        }]
+      }' > "$target"
+      ;;
+    cursor)
+      # cursor/plugins schemas/marketplace.schema.json is additionalProperties:
+      # false at every level. The marketplace description belongs under
+      # `metadata`; `owner` permits name+email; a plugin entry permits
+      # name/source/description/minClientVersions and nothing else. Version and
+      # author live in the plugin's own manifest — duplicating them in the index
+      # is exactly what the schema rejects.
+      jq -n --slurpfile t "$TOOLKIT" --arg path "./dist/$host" '{
+        name: "megaport",
+        metadata: { description: "Official Megaport plugins for AI coding assistants" },
+        owner: { name: $t[0].author.name, email: $t[0].author.email },
+        plugins: [{
+          name: $t[0].name,
+          source: $path,
+          description: $t[0].description
         }]
       }' > "$target"
       ;;

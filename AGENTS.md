@@ -26,7 +26,10 @@ core/
 hosts/<host>/host.json  adapter descriptor — the only thing a new host needs
 build.sh                core x hosts -> dist/
 dist/<host>/            generated, committed, consumed by marketplaces
-tests/run.sh            lint + schema + hook-dialect + allowlist checks
+tests/run.sh            lint + schema + hook-dialect + allowlist checks (offline)
+tests/upstream.sh       generated manifests vs each host's own publication
+                        validator, pinned and hash-verified (needs network)
+tests/upstream.pins.json  the pins upstream.sh fetches
 ```
 
 ## Tokens
@@ -63,8 +66,11 @@ stays neutral — do not push a Codex workaround into a skill body.
 1. Create `hosts/<host>/host.json` (copy the closest existing one).
 2. Add the host to the `HOSTS` list in `build.sh` — or nothing, if you let it
    glob; it globs.
-3. `./build.sh && ./tests/run.sh`.
-4. Add the new `dist/<host>` path to `.github/CODEOWNERS`.
+3. Add an entry for it to `tests/upstream.pins.json`, keyed by `host`.
+   `tests/run.sh` fails a host that no upstream validator covers — otherwise a
+   new host ships with nothing but our own opinion checking its manifest shape.
+4. `./build.sh && ./tests/run.sh && ./tests/upstream.sh`.
+5. Add the new `dist/<host>` path to `.github/CODEOWNERS`.
 
 No changes to `core/` should ever be required to add a host. If they are, the
 abstraction is wrong — fix the abstraction.
@@ -101,6 +107,38 @@ abstraction is wrong — fix the abstraction.
   at `.claude-plugin/marketplace.json`; Cursor at
   `.cursor-plugin/marketplace.json`. Three files, one generator.
 
+## Validating against the hosts, not against ourselves
+
+`tests/run.sh` checks that the generated manifests match the rules **this repo**
+wrote down. That is not the same as checking they match the rules the editors
+enforce, and the two drift. `tests/upstream.sh` closes that gap by running each
+host's own validator against `dist/`:
+
+| Host | Upstream validator | Pin |
+|---|---|---|
+| Cursor | `cursor/plugins` → `schemas/{plugin,marketplace}.schema.json` | commit SHA + sha256 |
+| Codex | `openai/codex` → `plugin-creator/scripts/validate_plugin.py` | commit SHA + sha256 |
+| Claude Code | `claude plugin validate --strict` (no standalone schema exists) | npm version |
+
+Two things to keep straight, because assuming either one away produces a false
+green:
+
+- **A loader is not a validator.** Every host here will happily *load* a bundle
+  its own publication validator rejects. Cursor's schemas are
+  `additionalProperties: false`; its runtime ignores unknown keys entirely, so
+  an install that works locally — GUI, symlink or marketplace — says nothing
+  about whether the bundle can be published. This is the same asymmetry
+  documented above for Codex, and it applies to every host.
+- **Neither one proves the plugin loads.** `claude plugin validate --strict`
+  passes manifests that fail at install time. The check for that is Tier 2:
+  install into an isolated `CLAUDE_CONFIG_DIR` / `CODEX_HOME` from a local
+  marketplace and read `claude plugin list --json` → `.errors` or
+  `codex debug prompt-input`. Neither needs credentials. Not wired up yet.
+
+Bump the pins with `./tests/upstream.sh --latest`, which resolves each tracked
+ref, re-hashes, and prints an updated pins file on stdout. It is a human-run
+step on purpose: a pin that CI bumps for you is not a pin.
+
 ## Runtime dependencies
 
 User-facing scripts may rely on: `bash` (3.2+, macOS ships 3.2 — no associative
@@ -119,12 +157,21 @@ deliberately, not reflexively.
 
 ## CI supply chain
 
-GitHub Actions are the only third-party code this repo executes. Every `uses:`
-in `.github/workflows/` is pinned to a **full 40-hex commit SHA** with a
-trailing `# vX.Y.Z` comment; `tests/run.sh` → `workflows` fails the build on a
-mutable tag or a missing version comment. Dependabot bumps the SHA and rewrites
-the comment, so this costs nothing to maintain — do not "simplify" a pin back to
-`@v7`.
+GitHub Actions and the host validators in `tests/upstream.pins.json` are the
+only third-party code this repo executes. Every `uses:` in `.github/workflows/`
+is pinned to a **full 40-hex commit SHA** with a trailing `# vX.Y.Z` comment;
+`tests/run.sh` → `workflows` fails the build on a mutable tag or a missing
+version comment. Dependabot bumps the SHA and rewrites the comment, so this
+costs nothing to maintain — do not "simplify" a pin back to `@v7`.
+
+The upstream validators get the same treatment plus a recorded `sha256`, since
+they are fetched by URL rather than resolved by GitHub: `tests/run.sh` →
+`upstream pins` enforces the SHA, the hash, the human label and the track
+offline, and `tests/upstream.sh` verifies the bytes before parsing or executing
+them. A hash mismatch aborts the run rather than counting as one more failure —
+it means upstream changed under a pinned SHA, and no verdict produced after that
+is worth reading. The pip packages the validators need are pinned in the
+workflow for the same reason.
 
 Resolve a tag to its SHA with:
 
