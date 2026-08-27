@@ -91,9 +91,9 @@ jobs:
   network:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # Live retrieval against docs.megaport.com, the Terraform Registry and the
-    # megaport-cli releases. Kept separate so an upstream outage does not block
-    # a pull request.
+    # Live retrieval against the Terraform Registry and the megaport-cli
+    # releases. Kept separate so an upstream outage does not block a pull
+    # request.
     continue-on-error: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

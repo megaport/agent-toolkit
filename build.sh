@@ -54,7 +54,6 @@ j() { jq -r "$1" "$TOOLKIT"; }
 
 NAME="$(j '.name')"
 VERSION="$(j '.version')"
-DOCS_BASE="$(j '.pins.docs_base_url')"
 CLI_VERSION="$(j '.pins.megaport_cli_version')"
 
 say() { printf '  %s\n' "$*"; }
@@ -69,7 +68,6 @@ render() {
   content="${content//\{\{LIB\}\}/$lib}"
   content="${content//\{\{VERSION\}\}/$VERSION}"
   content="${content//\{\{CLI_VERSION\}\}/$CLI_VERSION}"
-  content="${content//\{\{DOCS_BASE\}\}/$DOCS_BASE}"
   content="${content//\{\{NAME\}\}/$NAME}"
   printf '%s' "$content"
 }

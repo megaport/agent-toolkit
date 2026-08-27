@@ -13,7 +13,7 @@ one is the most common cause of a wrong answer.
 | Question | Surface | Skill |
 |---|---|---|
 | "What's on my account right now?" | **MCP** (`mcp.megaport.com`) | tools are already connected — call them directly |
-| "How does X work / how do I configure Y?" | **Docs** | `megaport-docs` |
+| "How does X work / how do I configure Y?" | **Docs MCP** (`docs.megaport.com`) | tools are already connected — call them directly |
 | "Write me Terraform for Z" | **Provider docs** | `megaport-terraform` |
 | "Give me a command I can commit / run in CI" | **CLI** | `megaport-cli` |
 
@@ -25,9 +25,9 @@ one is the most common cause of a wrong answer.
 directly. Never answer a "what do I have" question from documentation or from
 memory — read it.
 
-**Conceptual or procedural → docs.** Anything phrased as "how does", "what is",
-"can I", "what are the limits". The docs skill searches the published corpus
-rather than relying on what the model recalls, which for a product with
+**Conceptual or procedural → docs MCP.** Anything phrased as "how does", "what
+is", "can I", "what are the limits". The docs MCP tools search the published
+corpus rather than relying on what the model recalls, which for a product with
 Megaport's release cadence is frequently stale.
 
 **Infrastructure as code → Terraform.** If the user has `.tf` files in the

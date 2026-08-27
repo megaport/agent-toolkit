@@ -22,7 +22,7 @@
     "url": "https://github.com/megaport"
   },
 
-  "skills": ["megaport", "megaport-docs", "megaport-cli", "megaport-terraform"],
+  "skills": ["megaport", "megaport-cli", "megaport-terraform"],
 
   "interface": {
     "$comment": "Storefront metadata. Only the Codex manifest consumes it today (manifest flavour `codex` in hosts/codex/host.json), but it is product copy, not host configuration, so it lives here and is single-sourced. Codex's publication validator — codex-rs/skills/src/assets/samples/plugin-creator/scripts/validate_plugin.py — requires the whole block: non-empty displayName, shortDescription, longDescription, developerName and category, a `capabilities` array of non-empty strings, and a `defaultPrompt` string or list (max 3 entries, 128 chars each). websiteURL is optional but must be https.",
@@ -41,6 +41,11 @@
     "megaport": {
       "type": "http",
       "url": "https://mcp.megaport.com/mcp"
+    },
+    "docs": {
+      "$comment": "No-auth streamable HTTP endpoint hosted by docs.megaport.com itself — a Mintlify MCP server.",
+      "type": "http",
+      "url": "https://docs.megaport.com/mcp"
     },
     "terraform": {
       "$comment": "Opt-in. Requires Docker. Enabled by `build.sh --with-terraform-mcp` or by the user uncommenting it after install; see skills/megaport-terraform.",
@@ -138,8 +143,8 @@
     "megaport_cli_repo": "megaport/cli",
     "megaport_cli_version": "1.0.0-beta.2",
     "terraform_provider": "megaport/megaport",
-    "docs_base_url": "https://docs.megaport.com",
-    "mcp_url": "https://mcp.megaport.com/mcp"
+    "mcp_url": "https://mcp.megaport.com/mcp",
+    "docs_mcp_url": "https://docs.megaport.com/mcp"
   },
 
   "allowedHosts": {

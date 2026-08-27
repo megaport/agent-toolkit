@@ -43,7 +43,6 @@ Never hardcode a host-specific path or variable in `core/`.
 | `{{LIB}}` | `{{PLUGIN_ROOT}}/lib` |
 | `{{VERSION}}` | `core/toolkit.json` → `.version` |
 | `{{CLI_VERSION}}` | `core/toolkit.json` → `.pins.megaport_cli_version` |
-| `{{DOCS_BASE}}` | `core/toolkit.json` → `.pins.docs_base_url` |
 
 Plugin-root resolution is the single hardest portability problem here. Each host
 exposes it differently and Cursor does not document one at all, so every script

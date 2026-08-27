@@ -2,7 +2,7 @@
 # Test suite for the Megaport Agent Toolkit.
 #
 #   ./tests/run.sh            everything except network tests
-#   ./tests/run.sh --network  also hit docs.megaport.com and the TF registry
+#   ./tests/run.sh --network  also hit the TF registry and megaport-cli releases
 #
 # Groups:
 #   lint       shellcheck (if installed) + bash -n on every script
@@ -77,7 +77,7 @@ for h in "$ROOT"/hosts/*/host.json; do
 done
 
 # Tokens used in skills must be ones build.sh knows how to render.
-KNOWN='PLUGIN_ROOT|LIB|VERSION|CLI_VERSION|DOCS_BASE|NAME'
+KNOWN='PLUGIN_ROOT|LIB|VERSION|CLI_VERSION|NAME'
 unknown="$(grep -rhoE '\{\{[A-Z_]+\}\}' "$CORE/skills" 2>/dev/null | sort -u | grep -vE "\{\{($KNOWN)\}\}" || true)"
 if [ -z "$unknown" ]; then ok "no unknown template tokens"; else bad "no unknown template tokens" "$unknown"; fi
 
@@ -582,9 +582,17 @@ if [ "$NETWORK" -eq 1 ]; then
     fi
   }
 
-  matches "docs index reachable"     'Getting Started'   "$L/mp-docs.sh" sections
-  matches "docs index searchable"    'vxc'               "$L/mp-docs.sh" find VXC
-  matches "docs page extraction"     'Creating a Private VXC' "$L/mp-docs.sh" page /connections/private-vxc/
+  # The docs MCP server has no wrapper script of its own — hosts connect to it
+  # directly (see core/toolkit.json .mcpServers.docs) — so this hits the live
+  # endpoint with a bare JSON-RPC initialize request rather than going through
+  # core/lib. Confirms the URL is live and actually speaks MCP, not just HTTP.
+  matches "docs mcp server reachable" '"protocolVersion"' \
+    curl -s -X POST "$(jq -r '.pins.docs_mcp_url' "$CORE/toolkit.json")" \
+      -H 'Content-Type: application/json' \
+      -H 'Accept: application/json, text/event-stream' \
+      -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"agent-toolkit-test","version":"1"}}}' \
+      --max-time 15
+
   matches "terraform registry reachable" '^[0-9]+\.[0-9]+' "$L/mp-terraform.sh" version
   matches "provider resources listed" 'megaport_vxc'     "$L/mp-terraform.sh" list resources
   matches "provider doc content"     'megaport_vxc \(Resource\)' "$L/mp-terraform.sh" show megaport_vxc
