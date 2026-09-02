@@ -3,6 +3,10 @@
     "megaport": {
       "type": "http",
       "url": "https://mcp.megaport.com/mcp"
+    },
+    "docs": {
+      "type": "http",
+      "url": "https://docs.megaport.com/mcp"
     }
   }
 }

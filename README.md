@@ -39,7 +39,7 @@ Restart your assistant afterwards so it picks up the new skills.
 | Component | What it does |
 |---|---|
 | **MCP connection** | Authenticated connection to `mcp.megaport.com` — live account state, service diagnostics, locations, pricing. OAuth on first tool call, you choose access level. |
-| `megaport-docs` | Walks the published documentation index, fetches individual pages as markdown, full-text search as a fallback. |
+| **Docs MCP connection** | No-auth connection to `docs.megaport.com` — search and fetch the published documentation directly, no local caching. |
 | `megaport-terraform` | Resolves the provider schema from the Terraform Registry so generated HCL matches the version you're actually using. |
 | `megaport-cli` | Downloads, checksum-verifies and version-pins the right CLI binary for your machine, then runs it. |
 | `megaport` | Orientation: which surface answers which kind of question. |

@@ -20,7 +20,6 @@
   },
   "skills": [
     "megaport",
-    "megaport-docs",
     "megaport-cli",
     "megaport-terraform"
   ],
@@ -42,6 +41,10 @@
     "megaport": {
       "type": "http",
       "url": "https://mcp.megaport.com/mcp"
+    },
+    "docs": {
+      "type": "http",
+      "url": "https://docs.megaport.com/mcp"
     },
     "terraform": {
       "optional": true,
@@ -142,8 +145,8 @@
     "megaport_cli_repo": "megaport/cli",
     "megaport_cli_version": "1.0.0-beta.2",
     "terraform_provider": "megaport/megaport",
-    "docs_base_url": "https://docs.megaport.com",
-    "mcp_url": "https://mcp.megaport.com/mcp"
+    "mcp_url": "https://mcp.megaport.com/mcp",
+    "docs_mcp_url": "https://docs.megaport.com/mcp"
   },
   "allowedHosts": {
     "hosts": [
