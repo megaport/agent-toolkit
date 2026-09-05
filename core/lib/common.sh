@@ -232,7 +232,9 @@ mp_cache_fresh() {
   local f="$1" max="$2" mtime now
   [ -f "$f" ] || return 1
   # stat differs between BSD (macOS) and GNU (Linux).
-  mtime="$(stat -f %m "$f" 2>/dev/null || stat -c %Y "$f" 2>/dev/null || echo 0)"
+  mtime="$(stat -c %Y "$f" 2>/dev/null || stat -f %m "$f" 2>/dev/null || echo 0)"
+  case "$mtime" in ''|*[!0-9]*) mtime=0 ;; esac
+
   now="$(date +%s)"
   [ "$((now - mtime))" -lt "$max" ]
 }

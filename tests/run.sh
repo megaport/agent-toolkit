@@ -536,6 +536,38 @@ else
   fi
 fi
 
+# ---------------------------------------------------------------- cache
+
+group "cache"
+
+CS="$ROOT/dist/claude-code/lib/common.sh"
+if [ ! -f "$CS" ]; then
+  bad "common.sh built" "run ./build.sh first"
+else
+  CACHE_TMP="$(mktemp -d)"
+  : > "$CACHE_TMP/now"
+  : > "$CACHE_TMP/old"
+  touch -t 200001010000 "$CACHE_TMP/old"
+
+  cache_fresh() {
+    local out rc
+    out="$(bash -c ". '$CS'; mp_cache_fresh \"\$1\" \"\$2\"" _ "$1" "$2" 2>&1)"; rc=$?
+    [ -z "$out" ] || { printf 'noise on stdout/stderr: %s' "$out"; return; }
+    [ "$rc" -eq 0 ] && printf 'yes' || printf 'no'
+  }
+
+  expect_fresh() {
+    local label="$1" want="$2" got="$3"
+    if [ "$got" = "$want" ]; then ok "$label"; else bad "$label" "expected $want, got: $got"; fi
+  }
+
+  expect_fresh "just-written file is fresh" yes "$(cache_fresh "$CACHE_TMP/now" 3600)"
+  expect_fresh "aged file is stale"         no  "$(cache_fresh "$CACHE_TMP/old" 3600)"
+  expect_fresh "missing file is stale"      no  "$(cache_fresh "$CACHE_TMP/gone" 3600)"
+
+  rm -rf "$CACHE_TMP"
+fi
+
 # ---------------------------------------------------------------- build
 
 group "build"
@@ -575,7 +607,7 @@ if [ "$NETWORK" -eq 1 ]; then
     local label="$1" pattern="$2"; shift 2
     local out
     out="$("$@" 2>/dev/null)"
-    if printf '%s' "$out" | grep -qiE "$pattern"; then
+    if grep -qiE "$pattern" <<<"$out"; then
       ok "$label"
     else
       bad "$label" "output did not match /$pattern/: $(printf '%s' "$out" | head -3)"
